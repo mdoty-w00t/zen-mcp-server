@@ -10,7 +10,7 @@ Before making any changes or submitting PRs, always run the comprehensive qualit
 
 ```bash
 # Activate virtual environment first
-source venv/bin/activate
+source .zen_venv/bin/activate
 
 # Run all quality checks (linting, formatting, tests)
 ./code_quality_checks.sh
@@ -307,14 +307,41 @@ isort --check-only .
 - `simulator_tests/` - Individual test modules
 - `tests/` - Unit test suite
 - `tools/` - MCP tool implementations
+  - `tools/simple/base.py` - Base class for simple (request/response) tools
+  - `tools/workflow/workflow_mixin.py` - Base mixin for multi-step workflow tools
+  - `tools/consensus.py` - Consensus tool (multi-model voting)
 - `providers/` - AI provider implementations
+  - `providers/base.py` - Abstract base class, `ModelResponse`, `RetryableProviderError`
+  - `providers/registry.py` - Provider registry and model routing
+  - `providers/fallback.py` - `generate_with_fallback()` — automatic provider fallback on 5xx errors
+  - `providers/openai_compatible.py` - Base for OpenAI, DIAL, XAI, OpenRouter, Custom
+  - `providers/gemini.py` - Google Gemini provider
 - `systemprompts/` - System prompt definitions
 - `logs/` - Server log files
 
 ### Environment Requirements
 
-- Python 3.9+ with virtual environment
+- Python 3.9+ with virtual environment (`.zen_venv/`)
 - All dependencies from `requirements.txt` installed
 - Proper API keys configured in `.env` file
+
+**Key optional environment variables:**
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `DEFAULT_MODEL` | `auto` | Model for all tools; `auto` lets Claude choose |
+| `FALLBACK_MODEL` | *(empty)* | Model to use when the primary provider exhausts all retries on 5xx errors (e.g. `gpt-5`). Empty disables fallback. |
+| `DISABLED_TOOLS` | see `.env.example` | Comma-separated list of tools to disable |
+| `LOCALE` | *(empty)* | Language for AI responses (e.g. `fr-FR`) |
+
+### Provider Fallback Behaviour
+
+When `FALLBACK_MODEL` is set (e.g. `FALLBACK_MODEL=gpt-5` in `.env`), any tool call that fails because the primary provider returned repeated 5xx/network errors will automatically retry once with that fallback model. The response includes a brief notice:
+
+```
+Note: Primary provider unavailable, response generated using gpt-5
+```
+
+Auth errors and bad-request errors (4xx) are **not** retried — only server-side exhaustion. The fallback mechanism lives in `providers/fallback.py` and is wired into all three `generate_content` call sites: `tools/simple/base.py`, `tools/workflow/workflow_mixin.py`, and `tools/consensus.py`.
 
 This guide provides everything needed to efficiently work with the Zen MCP Server codebase using Claude. Always run quality checks before and after making changes to ensure code integrity.

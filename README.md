@@ -200,6 +200,8 @@ DISABLED_TOOLS=
         "DISABLED_TOOLS": "refactor,testgen,secaudit,docgen,tracer",
         "DEFAULT_MODEL": "pro",
         "DEFAULT_THINKING_MODE_THINKDEEP": "high",
+        // Fallback to gpt-5 when primary provider returns 5xx errors (optional)
+        "FALLBACK_MODEL": "gpt-5",
         
         // API configuration
         "GEMINI_API_KEY": "your-gemini-key",
@@ -244,6 +246,7 @@ DISABLED_TOOLS=
 - **Multi-model workflows** - Chain different models in single conversations
 - **Conversation continuity** - Context preserved across tools and models
 - **[Context revival](docs/context-revival.md)** - Continue conversations even after context resets
+- **Automatic provider fallback** - Set `FALLBACK_MODEL=gpt-5` to transparently retry with a backup model when the primary provider returns 5xx errors
 
 **Model Support**
 - **Multiple providers** - Gemini, OpenAI, X.AI, OpenRouter, DIAL, Ollama
