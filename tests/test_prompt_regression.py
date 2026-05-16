@@ -85,16 +85,14 @@ class TestPromptIntegration:
 
         # Create a temporary Python file for testing
         with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
-            f.write(
-                """
+            f.write("""
 def hello_world():
     \"\"\"A simple hello world function.\"\"\"
     return "Hello, World!"
 
 if __name__ == "__main__":
     print(hello_world())
-"""
-            )
+""")
             temp_file = f.name
 
         try:
@@ -149,8 +147,7 @@ if __name__ == "__main__":
 
         # Create a temporary Python file for testing
         with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
-            f.write(
-                """
+            f.write("""
 def process_user_input(user_input):
     # Potentially unsafe code for demonstration
     query = f"SELECT * FROM users WHERE name = '{user_input}'"
@@ -160,8 +157,7 @@ def main():
     user_name = input("Enter name: ")
     result = process_user_input(user_name)
     print(result)
-"""
-            )
+""")
             temp_file = f.name
 
         try:
@@ -235,8 +231,7 @@ def main():
 
         # Create a temporary Python file demonstrating MVC pattern
         with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
-            f.write(
-                """
+            f.write("""
 # Model
 class User:
     def __init__(self, name, email):
@@ -256,8 +251,7 @@ class UserController:
 
     def get_user_display(self):
         return self.view.display_user(self.model)
-"""
-            )
+""")
             temp_file = f.name
 
         try:

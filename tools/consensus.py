@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 from mcp.types import TextContent
 
 from config import TEMPERATURE_ANALYTICAL
+from providers.fallback import generate_with_fallback
 from systemprompts import CONSENSUS_PROMPT
 from tools.shared.base_models import WorkflowRequest
 from utils.model_context import ModelContext
@@ -559,25 +560,30 @@ of the evidence, even when it strongly points in one direction.""",
             for warning in temp_warnings:
                 logger.warning(warning)
 
-            # Call the model with validated temperature
-            response = provider.generate_content(
-                prompt=prompt,
+            # Call the model with validated temperature (with automatic fallback on 5xx)
+            response, fallback_notice = generate_with_fallback(
+                provider,
                 model_name=model_name,
+                prompt=prompt,
                 system_prompt=system_prompt,
                 temperature=validated_temperature,
                 thinking_mode="medium",
                 images=request.images if request.images else None,
             )
 
+            metadata: dict[str, Any] = {
+                "provider": provider.get_provider_type().value,
+                "model_name": model_name,
+            }
+            if fallback_notice:
+                metadata["fallback_notice"] = fallback_notice
+
             return {
                 "model": model_name,
                 "stance": stance,
                 "status": "success",
                 "verdict": response.content,
-                "metadata": {
-                    "provider": provider.get_provider_type().value,
-                    "model_name": model_name,
-                },
+                "metadata": metadata,
             }
 
         except Exception as e:

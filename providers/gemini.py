@@ -11,7 +11,14 @@ if TYPE_CHECKING:
 from google import genai
 from google.genai import types
 
-from .base import ModelCapabilities, ModelProvider, ModelResponse, ProviderType, create_temperature_constraint
+from .base import (
+    ModelCapabilities,
+    ModelProvider,
+    ModelResponse,
+    ProviderType,
+    RetryableProviderError,
+    create_temperature_constraint,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -342,6 +349,9 @@ class GeminiModelProvider(ModelProvider):
         # If we get here, all retries failed
         actual_attempts = attempt + 1  # Convert from 0-based index to human-readable count
         error_msg = f"Gemini API error for model {resolved_name} after {actual_attempts} attempt{'s' if actual_attempts > 1 else ''}: {str(last_exception)}"
+        logger.error(error_msg)
+        if last_exception is not None and self._is_error_retryable(last_exception):
+            raise RetryableProviderError(error_msg) from last_exception
         raise RuntimeError(error_msg) from last_exception
 
     def count_tokens(self, text: str, model_name: str) -> int:

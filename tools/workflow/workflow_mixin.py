@@ -30,6 +30,7 @@ from typing import Any, Optional
 from mcp.types import TextContent
 
 from config import MCP_PROMPT_SIZE_LIMIT
+from providers.fallback import generate_with_fallback
 from utils.conversation_memory import add_turn, create_thread
 
 from ..shared.base_models import ConsolidatedFindings
@@ -1381,7 +1382,9 @@ class BaseWorkflowMixin(ABC):
         # Add continuation_id guidance if continuing
         continuation_id = response_data.get("continuation_id")
         if continuation_id and request.next_step_required:
-            step_guidance += f"\n\nInclude continuation_id: '{continuation_id}' when calling step {request.step_number + 1}."
+            step_guidance += (
+                f"\n\nInclude continuation_id: '{continuation_id}' when calling step {request.step_number + 1}."
+            )
 
         response_data["next_steps"] = step_guidance
 
@@ -1514,10 +1517,11 @@ class BaseWorkflowMixin(ABC):
             for warning in temp_warnings:
                 logger.warning(warning)
 
-            # Generate AI response - use request parameters if available
-            model_response = provider.generate_content(
-                prompt=prompt,
+            # Generate AI response - use request parameters if available (with automatic fallback on 5xx)
+            model_response, fallback_notice = generate_with_fallback(
+                provider,
                 model_name=model_name,
+                prompt=prompt,
                 system_prompt=system_prompt,
                 temperature=validated_temperature,
                 thinking_mode=self.get_request_thinking_mode(request),
@@ -1537,6 +1541,8 @@ class BaseWorkflowMixin(ABC):
                 try:
                     # Try to parse as JSON
                     analysis_result = json.loads(content)
+                    if fallback_notice and isinstance(analysis_result, dict):
+                        analysis_result["fallback_notice"] = fallback_notice
                     return analysis_result
                 except json.JSONDecodeError as e:
                     # Log the parse error with more details but don't fail
@@ -1547,12 +1553,15 @@ class BaseWorkflowMixin(ABC):
                     logger.debug(f"First 500 chars of response: {model_response.content[:500]!r}")
 
                     # Still return the analysis as plain text - this is valid
-                    return {
+                    result = {
                         "status": "analysis_complete",
                         "raw_analysis": model_response.content,
                         "format": "text",  # Indicate it's plain text, not an error
                         "note": "Analysis provided in plain text format",
                     }
+                    if fallback_notice:
+                        result["fallback_notice"] = fallback_notice
+                    return result
             else:
                 return {"error": "No response from model", "status": "empty_response"}
 

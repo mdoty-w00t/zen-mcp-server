@@ -532,3 +532,14 @@ class ModelProvider(ABC):
         """
         # Default implementation - most providers don't have a registry
         return None
+
+
+class RetryableProviderError(RuntimeError):
+    """Raised when all retries failed due to retryable (5xx/network) errors.
+
+    Distinguishes server-side exhaustion from auth/bad-request failures,
+    which raise plain RuntimeError. Caught by generate_with_fallback() to
+    trigger automatic provider fallback when FALLBACK_MODEL is configured.
+    """
+
+    pass

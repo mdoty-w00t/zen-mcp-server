@@ -15,6 +15,7 @@ capabilities from BaseTool.
 from abc import abstractmethod
 from typing import Any, Optional
 
+from providers.fallback import generate_with_fallback
 from tools.shared.base_models import ToolRequest
 from tools.shared.base_tool import BaseTool
 from tools.shared.schema_builders import SchemaBuilder
@@ -428,10 +429,11 @@ class SimpleTool(BaseTool):
             estimated_tokens = estimate_tokens(prompt)
             logger.debug(f"Prompt length: {len(prompt)} characters (~{estimated_tokens:,} tokens)")
 
-            # Generate content with provider abstraction
-            model_response = provider.generate_content(
-                prompt=prompt,
+            # Generate content with provider abstraction (with automatic fallback on 5xx)
+            model_response, fallback_notice = generate_with_fallback(
+                provider,
                 model_name=self._current_model_name,
+                prompt=prompt,
                 system_prompt=system_prompt,
                 temperature=temperature,
                 thinking_mode=thinking_mode if provider.supports_thinking_mode(self._current_model_name) else None,
@@ -443,6 +445,8 @@ class SimpleTool(BaseTool):
             # Process the model's response
             if model_response.content:
                 raw_text = model_response.content
+                if fallback_notice:
+                    raw_text = f"{fallback_notice}\n\n{raw_text}"
 
                 # Create model info for conversation tracking
                 model_info = {

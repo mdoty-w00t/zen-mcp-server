@@ -30,6 +30,11 @@ DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "auto")
 # Auto mode detection - when DEFAULT_MODEL is "auto", Claude picks the model
 IS_AUTO_MODE = DEFAULT_MODEL.lower() == "auto"
 
+# FALLBACK_MODEL: model to use when the primary provider exhausts all retries
+# on server-side errors (502, 503, 504, network timeouts). Empty string disables
+# fallback (tools fail as before). Example: "gpt-5"
+FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "")
+
 # Each provider (gemini.py, openai_provider.py, xai.py) defines its own SUPPORTED_MODELS
 # with detailed descriptions. Tools use ModelProviderRegistry.get_available_model_names()
 # to get models only from enabled providers (those with valid API keys).

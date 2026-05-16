@@ -16,6 +16,7 @@ from .base import (
     ModelProvider,
     ModelResponse,
     ProviderType,
+    RetryableProviderError,
 )
 
 
@@ -440,6 +441,8 @@ class OpenAICompatibleProvider(ModelProvider):
         # If we get here, all retries failed
         error_msg = f"o3-pro responses endpoint error after {actual_attempts} attempt{'s' if actual_attempts > 1 else ''}: {str(last_exception)}"
         logging.error(error_msg)
+        if last_exception is not None and self._is_error_retryable(last_exception):
+            raise RetryableProviderError(error_msg) from last_exception
         raise RuntimeError(error_msg) from last_exception
 
     def generate_content(
@@ -604,6 +607,8 @@ class OpenAICompatibleProvider(ModelProvider):
         # If we get here, all retries failed
         error_msg = f"{self.FRIENDLY_NAME} API error for model {model_name} after {actual_attempts} attempt{'s' if actual_attempts > 1 else ''}: {str(last_exception)}"
         logging.error(error_msg)
+        if last_exception is not None and self._is_error_retryable(last_exception):
+            raise RetryableProviderError(error_msg) from last_exception
         raise RuntimeError(error_msg) from last_exception
 
     def count_tokens(self, text: str, model_name: str) -> int:
